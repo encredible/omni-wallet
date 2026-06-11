@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  omni-wallet:
+    build: .
+    container_name: omni-wallet-app
+    ports:
+      - "8080:80"
+    restart: unless-stopped

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omni Wallet | 옴니 월렛 - 통합 멀티체인 암호화폐 지갑</title>
+    <meta name="description" content="이더리움, 솔라나, 비트코인, 바이낸스 스마트 체인 등 모든 지갑을 하나의 안전하고 직관적인 대시보드에서 통합 관리하고 스왑 및 스테이킹을 진행하세요.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for beautiful charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container" id="app">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass" aria-label="메인 네비게이션">
+            <div class="logo-container">
+                <div class="logo-icon">Ω</div>
+                <div class="logo-text">Omni Wallet</div>
+            </div>
+            <nav>
+                <ul class="nav-list">
+                    <li>
+                        <button class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
+                            <span class="nav-icon" id="icon-dashboard"></span>
+                            <span data-key="nav-dashboard">대시보드</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" id="nav-wallets" onclick="switchView('wallets')">
+                            <span class="nav-icon" id="icon-wallets"></span>
+                            <span data-key="nav-wallets">지갑 관리자</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" id="nav-swap" onclick="switchView('swap')">
+                            <span class="nav-icon" id="icon-swap"></span>
+                            <span data-key="nav-swap">토큰 스왑</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" id="nav-earn" onclick="switchView('earn')">
+                            <span class="nav-icon" id="icon-earn"></span>
+                            <span data-key="nav-earn">스테이킹 (Earn)</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" id="nav-history" onclick="switchView('history')">
+                            <span class="nav-icon" id="icon-history"></span>
+                            <span data-key="nav-history">거래 내역</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" id="nav-settings" onclick="switchView('settings')">
+                            <span class="nav-icon" id="icon-settings"></span>
+                            <span data-key="nav-settings">설정</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-icon" style="width: 100%; display: flex; gap: 8px; justify-content: center; font-size: 13px;" onclick="toggleLanguage()">
+                    <span id="icon-globe"></span>
+                    <span id="lang-text">English</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="main-header glass" id="app-header">
+                <div class="header-title-section">
+                    <h1 class="header-title" id="page-title" data-key="title-dashboard">통합 대시보드</h1>
+                    <span class="header-subtitle" id="page-subtitle" data-key="subtitle-dashboard">모든 멀티체인 자산을 한눈에 파악하세요.</span>
+                </div>
+                <div class="header-actions">
+                    <div class="btn-icon" style="width: auto; padding: 0 16px; font-size: 13px; gap: 6px;" id="network-badge">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-secondary);"></span>
+                        <span>Mainnet</span>
+                    </div>
+                    <button class="btn-primary" id="btn-connect-wallet" onclick="openModal('modal-connect')">
+                        <span id="icon-plus"></span>
+                        <span data-key="btn-add-wallet">지갑 추가하기</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Scrollable Content Body -->
+            <main class="content-body" id="main-content">
+                <!-- VIEW 1: DASHBOARD -->
+                <section id="view-dashboard" class="page-view active">
+                    <div class="dashboard-grid">
+                        <!-- Left Panel -->
+                        <div class="dashboard-left">
+                            <!-- Summary Portfolio Card -->
+                            <div class="summary-card glass">
+                                <span class="summary-label" data-key="total-balance">총 순자산 가치</span>
+                                <div class="summary-value" id="dashboard-total-balance">$0.00</div>
+                                <div class="summary-change">
+                                    <span class="trend-up" id="dashboard-balance-change">+0.00% (24h)</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Portfolio Value Chart -->
+                            <div class="chart-container glass">
+                                <div class="chart-header">
+                                    <h2 class="chart-title" data-key="portfolio-trend">포트폴리오 추이 (7일)</h2>
+                                    <div class="chart-legend" id="chart-legend-container"></div>
+                                </div>
+                                <div class="canvas-wrapper">
+                                    <canvas id="portfolioChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <!-- Connected Wallets List -->
+                            <div class="wallets-section">
+                                <div class="section-header">
+                                    <h2 class="section-title" data-key="connected-wallets">연결된 지갑</h2>
+                                    <button class="btn-icon" style="width: auto; padding: 0 12px; font-size: 12px; height: 32px;" onclick="switchView('wallets')" data-key="btn-manage">관리</button>
+                                </div>
+                                <div class="wallets-list" id="dashboard-wallets-list">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel -->
+                        <div class="dashboard-right">
+                            <!-- Allocation Donut Chart -->
+                            <div class="allocation-card glass">
+                                <h2 class="chart-title" data-key="asset-allocation">체인별 자산 비율</h2>
+                                <div style="height: 180px; position: relative; margin-top: 16px;">
+                                    <canvas id="allocationChart"></canvas>
+                                </div>
+                                <div class="allocation-list" id="allocation-list-container">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                            
+                            <!-- Recent Transactions -->
+                            <div class="recent-tx-card glass">
+                                <div class="section-header">
+                                    <h2 class="section-title" data-key="recent-tx">최근 거래 내역</h2>
+                                    <button class="btn-icon" style="width: auto; padding: 0 12px; font-size: 12px; height: 32px;" onclick="switchView('history')" data-key="btn-view-all">전체 보기</button>
+                                </div>
+                                <div class="tx-list" id="dashboard-tx-list">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 2: WALLET MANAGER -->
+                <section id="view-wallets" class="page-view">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;" id="wallets-manager-layout">
+                        <!-- Left Panel: Connected Wallets List -->
+                        <div class="glass" style="padding: 24px;">
+                            <div class="section-header" style="margin-bottom: 20px;">
+                                <h2 class="section-title" data-key="connected-wallets">연결된 지갑 목록</h2>
+                                <button class="btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="openModal('modal-connect')">
+                                    <span id="icon-plus-wallets"></span>
+                                    <span data-key="btn-add">추가</span>
+                                </button>
+                            </div>
+                            <div class="tx-list" id="manager-wallets-list" style="max-height: 500px; overflow-y: auto;">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Selected Wallet Detail -->
+                        <div class="glass" style="padding: 24px; min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center;" id="wallet-detail-panel">
+                            <div id="wallet-detail-empty" style="text-align: center; color: var(--text-secondary);">
+                                <div style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;">💳</div>
+                                <p data-key="select-wallet-prompt">목록에서 지갑을 선택하시면 세부 주소와 거래 옵션을 볼 수 있습니다.</p>
+                            </div>
+                            <div id="wallet-detail-active" style="display: none; width: 100%;">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 3: TOKEN SWAP -->
+                <section id="view-swap" class="page-view">
+                    <div class="swap-container glass">
+                        <div class="section-header" style="margin-bottom: 24px;">
+                            <h2 class="section-title" data-key="nav-swap">토큰 스왑</h2>
+                            <button class="btn-icon" onclick="resetSwapForm()">↻</button>
+                        </div>
+                        
+                        <div class="swap-box">
+                            <!-- Pay From Card -->
+                            <div class="swap-input-card">
+                                <div class="swap-input-header">
+                                    <span data-key="swap-from">보내기 (지불)</span>
+                                    <span>Balance: <span id="swap-from-balance">0.00</span></span>
+                                </div>
+                                <div class="swap-input-row">
+                                    <input type="number" id="swap-input-from" class="swap-input" placeholder="0.0" oninput="calculateSwapOutput()">
+                                    <button class="swap-token-select" id="btn-select-token-from" onclick="openTokenSelect('from')">
+                                        <span id="swap-token-from-icon"></span>
+                                        <span id="swap-token-from-symbol">ETH</span>
+                                        <span id="icon-chevron-down-from"></span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Switch Button -->
+                            <div class="swap-divider">
+                                <button class="btn-swap-switch" onclick="switchSwapDirection()">
+                                    <span id="icon-arrow-down-up"></span>
+                                </button>
+                            </div>
+
+                            <!-- Receive To Card -->
+                            <div class="swap-input-card">
+                                <div class="swap-input-header">
+                                    <span data-key="swap-to">받기 (대상)</span>
+                                    <span>Balance: <span id="swap-to-balance">0.00</span></span>
+                                </div>
+                                <div class="swap-input-row">
+                                    <input type="number" id="swap-input-to" class="swap-input" placeholder="0.0" readonly>
+                                    <button class="swap-token-select" id="btn-select-token-to" onclick="openTokenSelect('to')">
+                                        <span id="swap-token-to-icon"></span>
+                                        <span id="swap-token-to-symbol">USDC</span>
+                                        <span id="icon-chevron-down-to"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Routing details -->
+                        <div class="swap-info">
+                            <div class="swap-info-row">
+                                <span data-key="swap-rate">교환 비율</span>
+                                <span id="swap-rate-value">1 ETH = 3,500 USDC</span>
+                            </div>
+                            <div class="swap-info-row">
+                                <span data-key="swap-gas">네트워크 수수료</span>
+                                <span id="swap-gas-value">$5.40 (0.0015 ETH)</span>
+                            </div>
+                            <div class="swap-info-row">
+                                <span data-key="swap-slippage">슬리패스 허용치</span>
+                                <span>0.5%</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-primary" style="width: 100%; justify-content: center; height: 50px; font-size: 16px;" id="btn-execute-swap" onclick="processSwap()" disabled>
+                            <span data-key="btn-swap-now">스왑 실행하기</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- VIEW 4: STAKING (EARN) -->
+                <section id="view-earn" class="page-view">
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="font-size: 18px; margin-bottom: 8px;" data-key="staking-opportunities">멀티체인 스테이킹 기회</h2>
+                        <p style="color: var(--text-secondary); font-size: 14px;" data-key="staking-desc">보유 중인 자산을 스테이킹하여 실시간 보상을 획득하고 분산 환경을 강화하세요.</p>
+                    </div>
+                    <div class="staking-grid" id="staking-grid-container">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </section>
+
+                <!-- VIEW 5: TRANSACTION HISTORY -->
+                <section id="view-history" class="page-view">
+                    <div class="glass" style="padding: 24px;">
+                        <div class="section-header" style="margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+                            <h2 class="section-title" data-key="full-history">전체 거래 히스토리</h2>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="tx-search-input" class="form-input" placeholder="주소, 해시 검색..." style="padding: 6px 12px; font-size: 13px;" oninput="filterTransactions()">
+                                <select id="tx-filter-select" class="form-select" style="padding: 6px 12px; font-size: 13px;" onchange="filterTransactions()">
+                                    <option value="all" data-key="filter-all">모든 거래</option>
+                                    <option value="send" data-key="filter-send">보내기</option>
+                                    <option value="receive" data-key="filter-receive">받기</option>
+                                    <option value="swap" data-key="filter-swap">스왑</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="tx-list" id="history-tx-list">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 6: SETTINGS -->
+                <section id="view-settings" class="page-view">
+                    <div class="settings-container">
+                        <div class="settings-card glass">
+                            <h2 class="chart-title" style="margin-bottom: 16px;" data-key="general-settings">일반 설정</h2>
+                            <div class="settings-row">
+                                <div class="settings-info">
+                                    <span class="settings-label" data-key="base-currency">기본 통화</span>
+                                    <span class="settings-desc" data-key="base-currency-desc">자산을 표시할 기준 법정화폐를 결정합니다.</span>
+                                </div>
+                                <select class="form-select" id="setting-currency" onchange="changeCurrency(this.value)">
+                                    <option value="USD">USD ($)</option>
+                                    <option value="KRW">KRW (₩)</option>
+                                </select>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-info">
+                                    <span class="settings-label" data-key="active-network">네트워크 모드</span>
+                                    <span class="settings-desc" data-key="active-network-desc">지갑의 연결 대상을 시뮬레이션 메인넷과 테스트넷으로 전환합니다.</span>
+                                </div>
+                                <select class="form-select" id="setting-network" onchange="changeNetwork(this.value)">
+                                    <option value="mainnet">Mainnet</option>
+                                    <option value="testnet">Testnet (Goerli/Devnet)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-card glass">
+                            <h2 class="chart-title" style="color: var(--accent-danger); margin-bottom: 16px;" data-key="danger-zone">위험 영역</h2>
+                            <div class="settings-row">
+                                <div class="settings-info">
+                                    <span class="settings-label" data-key="reset-data">모든 시뮬레이션 상태 초기화</span>
+                                    <span class="settings-desc" data-key="reset-data-desc">로컬 스토리지에 저장된 모든 연결 지갑 및 거래 가상 데이터를 삭제하고 초기 상태로 되돌립니다.</span>
+                                </div>
+                                <button class="btn-primary" style="background: linear-gradient(135deg, var(--accent-danger) 0%, #b91c1c 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);" onclick="resetAllData()" data-key="btn-reset">초기화</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- ================= MODALS ================= -->
+        
+        <!-- 1. Connect / Create Wallet Modal -->
+        <div class="modal-overlay" id="modal-connect">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h2 class="modal-title" data-key="modal-connect-title">새 지갑 연결 및 추가</h2>
+                    <button class="btn-close" onclick="closeModal('modal-connect')">&times;</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn-primary" style="background: #1e293b; color: white; border: 1px solid var(--border-light); justify-content: flex-start; gap: 16px; padding: 16px;" onclick="openSubModal('create')">
+                        <span style="font-size: 20px;">🆕</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700; font-size: 14px;" data-key="btn-create-new-title">새로운 지갑 생성하기</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);" data-key="btn-create-new-desc">각 체인의 새로운 주소와 개인키를 가상 생성합니다.</div>
+                        </div>
+                    </button>
+                    <button class="btn-primary" style="background: #1e293b; color: white; border: 1px solid var(--border-light); justify-content: flex-start; gap: 16px; padding: 16px;" onclick="openSubModal('import')">
+                        <span style="font-size: 20px;">🔑</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700; font-size: 14px;" data-key="btn-import-title">기존 지갑 복구하기 (개인키/구문)</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);" data-key="btn-import-desc">개인키 또는 니모닉 복구 구문을 사용해 지갑을 시뮬레이션 등록합니다.</div>
+                        </div>
+                    </button>
+                    <button class="btn-primary" style="background: #1e293b; color: white; border: 1px solid var(--border-light); justify-content: flex-start; gap: 16px; padding: 16px;" onclick="connectSimulatedExtension('Metamask')">
+                        <span style="font-size: 20px;">🦊</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700; font-size: 14px;">Metamask 연결 (EVM 체인)</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);" data-key="btn-metamask-desc">이더리움 메타마스크 지갑을 원클릭으로 가상 감지 및 연결합니다.</div>
+                        </div>
+                    </button>
+                    <button class="btn-primary" style="background: #1e293b; color: white; border: 1px solid var(--border-light); justify-content: flex-start; gap: 16px; padding: 16px;" onclick="connectSimulatedExtension('Phantom')">
+                        <span style="font-size: 20px;">👻</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700; font-size: 14px;">Phantom 연결 (Solana 체인)</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);" data-key="btn-phantom-desc">솔라나 팬텀 지갑을 원클릭으로 가상 감지 및 연결합니다.</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1a. SubModal: Create New Wallet -->
+        <div class="modal-overlay" id="modal-create-details">
+            <div class="modal-content glass" style="max-width: 480px;">
+                <div class="modal-header">
+                    <h2 class="modal-title" data-key="modal-create-title">새 멀티체인 지갑 생성</h2>
+                    <button class="btn-close" onclick="closeModal('modal-create-details')">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="create-wallet-chain" data-key="select-chain">체인 선택</label>
+                    <select id="create-wallet-chain" class="form-select">
+                        <option value="ETH">Ethereum</option>
+                        <option value="SOL">Solana</option>
+                        <option value="BTC">Bitcoin</option>
+                        <option value="BNB">Binance Smart Chain</option>
+                        <option value="MATIC">Polygon</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="create-wallet-name" data-key="wallet-name">지갑 이름</label>
+                    <input type="text" id="create-wallet-name" class="form-input" placeholder="My Hot Wallet">
+                </div>
+                <button class="btn-primary" style="width: 100%; justify-content: center; margin-top: 16px;" onclick="generateMockKeys()" data-key="btn-generate">지갑 생성 및 암호키 발행</button>
+                
+                <div id="generated-keys-box" style="display: none; margin-top: 20px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border-light);">
+                    <div style="color: var(--accent-warning); font-size: 12px; display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
+                        <span id="icon-warning-keys"></span>
+                        <strong data-key="backup-warning">중요: 아래의 가상 비밀키를 꼭 백업해 두세요!</strong>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-label" data-key="public-address">공개 주소 (Address)</span>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="generated-address" class="form-input" style="flex: 1; font-family: monospace; font-size: 12px;" readonly>
+                            <button class="btn-icon" onclick="copyText('generated-address')"><span id="icon-copy-addr"></span></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-label" data-key="private-key">비밀키 (Private Key)</span>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="password" id="generated-privkey" class="form-input" style="flex: 1; font-family: monospace; font-size: 12px;" readonly>
+                            <button class="btn-icon" onclick="togglePrivKeyVisibility('generated-privkey')">👁️</button>
+                            <button class="btn-icon" onclick="copyText('generated-privkey')"><span id="icon-copy-priv"></span></button>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--accent-secondary) 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); margin-top: 16px;" onclick="addGeneratedWallet()" data-key="btn-complete-connect">내 자산에 지갑 등록 완료</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1b. SubModal: Import Wallet -->
+        <div class="modal-overlay" id="modal-import-details">
+            <div class="modal-content glass" style="max-width: 480px;">
+                <div class="modal-header">
+                    <h2 class="modal-title" data-key="modal-import-title">기존 지갑 복구 및 등록</h2>
+                    <button class="btn-close" onclick="closeModal('modal-import-details')">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="import-wallet-chain" data-key="select-chain">체인 선택</label>
+                    <select id="import-wallet-chain" class="form-select">
+                        <option value="ETH">Ethereum</option>
+                        <option value="SOL">Solana</option>
+                        <option value="BTC">Bitcoin</option>
+                        <option value="BNB">Binance Smart Chain</option>
+                        <option value="MATIC">Polygon</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="import-wallet-name" data-key="wallet-name">지갑 이름</label>
+                    <input type="text" id="import-wallet-name" class="form-input" placeholder="Imported Wallet">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="import-wallet-key" data-key="private-key-or-mnemonic">개인키 또는 복구 구문 입력</label>
+                    <textarea id="import-wallet-key" class="form-input" style="height: 80px; resize: none;" placeholder="0x... 또는 12개의 단어로 구성된 mnemonic 복구 문장을 입력해 주세요."></textarea>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 11px; display: flex; gap: 8px; align-items: flex-start; color: var(--accent-danger);">
+                    <span id="icon-info-safety" style="margin-top: 2px;"></span>
+                    <span data-key="safety-alert">경고: 이것은 시뮬레이션 지갑입니다. 실자산의 프라이빗 키는 절대 입력하지 마세요. 모의 자산용 테스트 비밀키(또는 임의 키) 입력을 권장합니다.</span>
+                </div>
+                <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="submitImportWallet()" data-key="btn-import-submit">가상 자산 지갑 복구하기</button>
+            </div>
+        </div>
+
+        <!-- 2. Send Crypto Modal -->
+        <div class="modal-overlay" id="modal-send">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="send-modal-title">Ethereum 송금하기</h2>
+                    <button class="btn-close" onclick="closeModal('modal-send')">&times;</button>
+                </div>
+                <div class="form-group">
+                    <span class="form-label" data-key="send-from-wallet">보내는 지갑</span>
+                    <div id="send-source-wallet-desc" style="font-size: 13px; color: var(--text-secondary); padding: 8px 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">My Wallet (0x12...34)</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="send-recipient" data-key="recipient-address">받는 주소</label>
+                    <input type="text" id="send-recipient" class="form-input" placeholder="0x... 또는 도메인 주소">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="send-amount" data-key="send-amount-label">송금 금액</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" id="send-amount" class="form-input" style="flex: 1;" placeholder="0.0" oninput="validateSendAmount()">
+                        <span style="font-weight: 700; width: 50px;" id="send-amount-symbol">ETH</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 4px;">
+                        Max: <span id="send-max-balance">0.00</span> <span id="send-max-symbol">ETH</span>
+                    </div>
+                </div>
+                <div class="swap-info" style="margin-bottom: 20px;">
+                    <div class="swap-info-row">
+                        <span data-key="gas-fee">가스 수수료 (예상)</span>
+                        <span id="send-gas-fee">$2.40 (0.0006 ETH)</span>
+                    </div>
+                </div>
+                <button class="btn-primary" style="width: 100%; justify-content: center; height: 45px;" id="btn-confirm-send" onclick="executeSendTransaction()" disabled data-key="btn-send-now">송금 실행하기</button>
+            </div>
+        </div>
+
+        <!-- 3. Receive Crypto Modal -->
+        <div class="modal-overlay" id="modal-receive">
+            <div class="modal-content glass" style="max-width: 400px; text-align: center;">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="receive-modal-title">Ethereum 수령하기</h2>
+                    <button class="btn-close" onclick="closeModal('modal-receive')">&times;</button>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 16px 0;">
+                    <!-- Styled QR code mockup -->
+                    <div id="receive-qr-mock" style="width: 180px; height: 180px; background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+                        <!-- Simulated QR Code SVG or Canvas will go here -->
+                        <div id="qr-code-canvas-container"></div>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-secondary);" data-key="receive-qr-desc">스캔하면 지갑 주소를 즉시 복사하여 송금할 수 있습니다.</p>
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <span class="form-label" data-key="deposit-address">입금 주소 (Deposit Address)</span>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;">
+                        <input type="text" id="receive-address-input" class="form-input" style="flex: 1; font-family: monospace; font-size: 12px;" readonly>
+                        <button class="btn-icon" onclick="copyText('receive-address-input')"><span id="icon-copy-receive"></span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Token Select Modal for Swaps -->
+        <div class="modal-overlay" id="modal-token-select">
+            <div class="modal-content glass" style="max-width: 360px;">
+                <div class="modal-header">
+                    <h2 class="modal-title" data-key="select-token">토큰 선택</h2>
+                    <button class="btn-close" onclick="closeModal('modal-token-select')">&times;</button>
+                </div>
+                <div class="tx-list" id="token-select-list" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. General Transaction Pending / Processing Modal -->
+        <div class="modal-overlay" id="modal-processing">
+            <div class="modal-content glass" style="max-width: 380px; text-align: center;">
+                <div style="padding: 24px 0;">
+                    <div class="swap-spinner" style="width: 50px; height: 50px; border-width: 4px; margin-bottom: 20px;"></div>
+                    <h2 class="modal-title" id="processing-title" style="margin-bottom: 8px;">거래 처리 중...</h2>
+                    <p style="color: var(--text-secondary); font-size: 13px;" id="processing-desc">네트워크상에 거래 블록을 시뮬레이션 및 검증하고 있습니다. 잠시만 기다려 주세요.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toast Notification -->
+        <div class="notification-toast glass" id="toast">
+            <div id="toast-icon"></div>
+            <div id="toast-message">주소가 성공적으로 복사되었습니다.</div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
